@@ -1,1 +1,7 @@
+# some specific project's files
 cpp_guide.pdf
+fun.cpp
+
+# executables
+*.out
+*.o
