@@ -8,13 +8,15 @@
 #include <random>
 #include <string>
 
-
 class AnnealingSolution {
 public:
     virtual long long get_loss_metric() const = 0;
     virtual void print() const = 0;
+    virtual void to_bytes(int) const = 0;
+    virtual void from_bytes(int) = 0;
 
     virtual AnnealingSolution& operator=(const AnnealingSolution& other) = 0;
+
 
     virtual ~AnnealingSolution() = default;
 };
@@ -85,7 +87,7 @@ public:
     
     void print_loss() {
         std::cout << smallest_loss << '\n';
-        std::cout << iter;
+        std::cout << iter << '\n';
     }
 
     void clear() {
@@ -93,6 +95,8 @@ public:
         delete best_solution;
         delete new_solution;
     }
+
+    AnnealingSolution* get_solution() {return best_solution;}
 };
 
 class BoltzmannLaw: public LowerTemperature {
@@ -139,8 +143,11 @@ public:
     // Похоже на костыль, поведение при перегрузке оператора присваивания мне
     // не до конца понятно.
     AnnealingSolution& operator=(const AnnealingSolution& other) override;
+    ImplAnnealingSolution& operator=(const ImplAnnealingSolution& other);
 
     void print() const override;
+    void to_bytes(int) const override;
+    void from_bytes(int) override;
 
     ~ImplAnnealingSolution() override = default;
 

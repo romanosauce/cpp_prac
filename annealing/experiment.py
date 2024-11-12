@@ -114,6 +114,101 @@ def draw_heat_map(in_file, out_file, labels_x, labels_y):
 
 # experiment3()
 
-procs = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
-tasks = [300 * i for i in range(1, 21)]
-draw_heat_map('output/heat_map_data.pkl', 'output/heat_map.png', procs, tasks)
+# procs = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+# tasks = [300 * i for i in range(1, 21)]
+# draw_heat_map('output/heat_map_data.pkl', 'output/heat_map.png', procs, tasks)
+
+
+def experiment4_paral():
+    print("Experiment 4 parallel: comparison of parallel with consecutive")
+    law = "mixed"
+    n_proc = 4
+    time_incr = []
+    loss_decr = []
+
+    for N in [200, 400, 800, 1600, 3200]:
+        file_name = f'input/input_ex4_k20_n{N}.csv'
+        generator.generator(heavy_k, N, 10, 100, file_name)
+        print(f"CONSECUTIVE VERSION k={heavy_k}, N={N}, law={law}")
+        st = time.time()
+        p = subprocess.run(f"./experiment {file_name} {law}", shell=True, capture_output=True,
+                           encoding='utf8')
+        t_con = time.time() - st
+        loss_con = int(p.stdout.split()[0])
+        print(f"    time: {t_con:.2f}")
+        print(f"    loss: {loss_con}")
+
+        print(f"PARALLEL VERSION k={heavy_k}, N={N}, law={law}, NPROC={n_proc}")
+        st = time.time()
+        p = subprocess.run(f"./experiment_paral {file_name} {law} {n_proc}", shell=True, capture_output=True,
+                           encoding='utf8')
+        t_par = time.time() - st
+        loss_par = int(p.stdout.split()[0])
+        print(f"    time: {t_par:.2f}")
+        print(f"    loss: {loss_par}")
+        time_incr.append((t_par-t_con)/t_con * 100)
+        loss_decr.append((loss_con - loss_par) / loss_con * 100)
+        print(f"time increase by: {time_incr[-1]:.1f}%")
+        print(f"loss decrease by: {loss_decr[-1]:.1f}%")
+        print()
+
+    print(f"Parallel version of simulated annealing in such implementation doesn't decrease running time.\n\
+On average running time increased by {sum(time_incr)/len(time_incr):.1f}%.\n\
+On the other hand loss decreased by {sum(loss_decr)/len(loss_decr):.1f}%")
+
+def experiment5_paral():
+    print("Experiment 5 parallel: running time dependency graph")
+
+    mean_runs = 5
+    
+    law = "mixed"
+    n_tasks = 3200
+    procs = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    file_name = f'input/input_ex5_k20_n{n_tasks}.csv'
+    generator.generator(heavy_k, n_tasks, 10, 100, file_name)
+
+    res = []
+
+    for proc in procs:
+        print(f"PARALLEL VERSION k={heavy_k}, N={n_tasks}, law={law}")
+        mean_t = []
+        print(f"Proccesses number: {proc}")
+        for i in range(mean_runs):
+            print(f"  Run {i}")
+            st = time.time()
+            p = subprocess.run(f"./experiment_paral {file_name} {law} {proc}", shell=True, capture_output=True,
+                               encoding='utf8')
+            mean_t.append(time.time() - st)
+            print(f"    time: {mean_t[-1]:.2f}")
+        res.append(sum(mean_t)/len(mean_t))
+        print(f"mean time: {res[-1]:.2f}")
+
+    res = np.array(res)
+    with open('output/parallel_times.pkl', 'wb') as f:
+        pickle.dump(res, f)
+
+    print("Experiment 5 finished!")
+    print("You can find data for time graph in output/parallel_times.pkl file")
+
+# experiment5_paral()
+# with open('output/parallel_times.pkl', 'rb') as f:
+    # arr = pickle.load(f)
+    # print(arr)
+
+def draw_plot(in_file, out_file, x_values):
+    with open(in_file, 'rb') as f:
+        arr = pickle.load(f)
+    fig, ax = plt.subplots()
+    im = ax.plot(x_values, arr)
+    ax.grid(True)
+    plt.title("Parallel algorithm execution time")
+    plt.xlabel("Number of processes")
+    plt.ylabel("Execution time")
+
+    plt.savefig(out_file)
+
+
+# draw_plot('output/parallel_times.pkl', 'output/parallel_plot.png', np.arange(1, 9))
+
+experiment4_paral()

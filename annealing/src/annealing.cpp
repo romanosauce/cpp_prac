@@ -1,9 +1,10 @@
 #include "annealing.h"
+#include <unistd.h>
 #include <random>
 #include <algorithm>
 
 namespace CONFIG {
-    int MAX_ITER_WITHOUT_IMPROVEMENT = 100;
+    int MAX_ITER_WITHOUT_IMPROVEMENT = 1000;
     int STEPS_WITHOUT_TEMP_DECREASE = 5;
 }
 
@@ -28,10 +29,11 @@ void SimulateAnnealing::replace_solution(long long loss) {
         iter_with_improvement = iter;
         smallest_loss = loss;
         *best_solution = *new_solution;
+        //std::cout << "New loss " << smallest_loss << '\n';
     }
     cur_loss = loss;
     AnnealingSolution* temp = solution;
-    solution = new_solution;
+  solution = new_solution;
     new_solution = temp;
 }
 
@@ -70,6 +72,15 @@ AnnealingSolution& ImplAnnealingSolution::operator=(const AnnealingSolution& oth
     return *this;
 }
 
+ImplAnnealingSolution& ImplAnnealingSolution::operator=(const ImplAnnealingSolution& other) {
+    k = other.k;
+    works = other.works;
+    schedule = other.schedule;
+    works_binding = other.works_binding;
+    return *this;
+}
+    
+
 void ImplAnnealingSolution::print() const {
     for (int i = 0; i < schedule.size(); ++i) {
         std::cout << i << ": ";
@@ -79,6 +90,31 @@ void ImplAnnealingSolution::print() const {
         std::cout << '\n';
     }
 }
+
+void ImplAnnealingSolution::to_bytes(int fd) const {
+    for (int i = 0; i < schedule.size(); ++i) {
+        size_t proc_queue_size = schedule[i].size();
+        write(fd, &proc_queue_size, sizeof(proc_queue_size));
+        for (const int& task : schedule[i]) {
+            write(fd, &task, sizeof(task));
+        }
+    }
+}
+
+void ImplAnnealingSolution::from_bytes(int fd) {
+    for (int i = 0; i < k; ++i) {
+        size_t proc_queue_size;
+        read(fd, &proc_queue_size, sizeof(proc_queue_size));
+        schedule[i] = std::vector<int>();
+        for (int j = 0; j < proc_queue_size; ++j) {
+            int task;
+            read(fd, &task, sizeof(task));
+            schedule[i].push_back(task);
+            works_binding[task] = i;
+        }
+    }
+}
+
 
 double BoltzmannLaw::operator()(double temp, int iter) const {
     return temp / std::log(1+iter);
