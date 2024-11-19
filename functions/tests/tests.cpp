@@ -1,4 +1,4 @@
-#include "../src_old/functions.h"
+#include "../src/functions.h"
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
